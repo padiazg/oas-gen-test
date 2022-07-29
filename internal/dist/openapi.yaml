@@ -4,7 +4,7 @@ info:
     description: Description - Builder Testing for OAS3.0.1
     termsOfService: https://smartbear.com/terms-of-use/
     contact:
-        email: aleksandar.nesovic@protonmail.com
+        email: padiazg@gmail.com
     license:
         name: MIT
         url: https://github.com/go-oas/docs/blob/main/LICENSE
@@ -12,7 +12,76 @@ info:
 externalDocs:
     description: ""
     url: ""
-servers: []
-tags: []
-paths: {}
-components: {}
+servers:
+    - url: https://petstore.swagger.io/v2
+    - url: http://httpbin.org
+tags:
+    - name: user
+      description: Operations about the User
+      externalDocs:
+        description: User from the Petstore example
+        url: http://swagger.io
+paths:
+    /user:
+        get:
+            operationId: createUser
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/User'
+                description: Create a new User
+            responses:
+                200:
+                    content: {}
+                    description: OK
+                404:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+                    description: Not Found
+            security:
+                - petstore_auth:
+                    - write:users
+                    - read:users
+            summary: Create a new User
+            tags:
+                - user
+components:
+    schemas:
+        Tag:
+            $ref: ""
+            properties:
+                id:
+                    format: int64
+                    type: integer
+                name:
+                    type: string
+            type: object
+            xml:
+                name: Tag
+        User:
+            $ref: '#/components/schemas/User'
+            properties:
+                email:
+                    type: string
+                id:
+                    description: UserID
+                    format: int64
+                    type: integer
+                phForEnums:
+                    enum:
+                        - placed
+                        - approved
+                    type: enum
+                userStatus:
+                    description: User Status
+                    format: int32
+                    type: integer
+                username:
+                    type: string
+            type: object
+            xml:
+                name: User
+    securitySchemes: {}
