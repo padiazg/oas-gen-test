@@ -1,7 +1,12 @@
 package main
 
 import (
-	"github.com/go-oas/docs"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+
+	docs "github.com/padiazg/go-oas-docs"
 )
 
 func main() {
@@ -12,41 +17,74 @@ func main() {
 	apiSetServers(&apiDoc)
 	apiSetComponents(&apiDoc)
 
-	apiDoc.AttachRoutes([]docs.RouteFn{
-		handleCreateUserRoute,
-		// handleGetUserRoute,
+	apiDoc.AddRoute(docs.Path{
+		Route:       "/users",
+		HTTPMethod:  "POST",
+		OperationID: "createUser",
+		Summary:     "Create a new User",
+		Responses: docs.Responses{
+			getResponseOK(),
+			getResponseNotFound(),
+		},
+		// HandlerFuncName: "handleCreateUser",
+		RequestBody: docs.RequestBody{
+			Description: "Create a new User",
+			Content: docs.ContentTypes{
+				getContentApplicationJSON("#/components/schemas/User"),
+			},
+			Required: true,
+		},
 	})
 
-	apiDoc.Paths = docs.Paths{
-		docs.Path{
-			Route:       "/user",
-			HTTPMethod:  "GET",
-			OperationID: "GetUser",
-			Responses: docs.Responses{
-				getResponseOK(),
-				getResponseNotFound(),
-			},
-			HandlerFuncName: "handleCreateUser",
-			RequestBody: docs.RequestBody{
-				Description: "Create a new User",
-				Content: docs.ContentTypes{
-					getContentApplicationJSON("#/components/schemas/User"),
-				},
-				Required: true,
-			},
+	apiDoc.AddRoute(docs.Path{
+		Route:       "/users",
+		HTTPMethod:  "GET",
+		OperationID: "getUser",
+		Summary:     "Get a User",
+		Responses: docs.Responses{
+			getResponseOK(),
 		},
+		// HandlerFuncName: "handleCreateUser",
+		RequestBody: docs.RequestBody{
+			Description: "Create a new User",
+			Content: docs.ContentTypes{
+				getContentApplicationJSON("#/components/schemas/User"),
+			},
+			Required: true,
+		},
+	})
+
+	// if err := apiDoc.BuildDocs(); err != nil {
+	// 	panic(err)
+	// }
+
+	// if err := docs.ServeSwaggerUI(&docs.ConfigSwaggerUI{
+	// 	Route: "/docs/api/",
+	// 	Port:  "3006",
+	// }); err != nil {
+	// 	panic(err)
+	// }
+
+	mux := http.NewServeMux()
+
+	fs := http.FileServer(http.Dir("./static"))
+	mux.Handle("/", fs)
+
+	mux.HandleFunc("/docs/oas", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "text/yaml")
+		writer.WriteHeader(http.StatusOK)
+		apiDoc.BuildStream(writer)
+	})
+
+	if err := http.ListenAndServe(":3006", mux); err != nil {
+		if errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("server closed\n")
+		} else if err != nil {
+			fmt.Printf("error starting server: %s\n", err)
+			os.Exit(1)
+		}
 	}
 
-	if err := apiDoc.BuildDocs(); err != nil {
-		panic(err)
-	}
-
-	if err := docs.ServeSwaggerUI(&docs.ConfigSwaggerUI{
-		Route: "/docs/api/",
-		Port:  "3006",
-	}); err != nil {
-		panic(err)
-	}
 }
 
 func apiSetInfo(apiDoc *docs.OAS) {
