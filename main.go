@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	docs "github.com/padiazg/go-oas-docs"
+	"github.com/padiazg/docs"
 )
 
 func main() {
@@ -67,13 +67,18 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// serve static files
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/", fs)
 
-	mux.HandleFunc("/docs/oas", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "text/yaml")
-		writer.WriteHeader(http.StatusOK)
-		apiDoc.BuildStream(writer)
+	// serve the oas document generated
+	mux.HandleFunc("/docs/oas", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/yaml")
+		w.WriteHeader(http.StatusOK)
+		if err := apiDoc.BuildStream(w); err != nil {
+			http.Error(w, "could not write body", http.StatusInternalServerError)
+			return
+		}
 	})
 
 	if err := http.ListenAndServe(":3006", mux); err != nil {
@@ -84,7 +89,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
 }
 
 func apiSetInfo(apiDoc *docs.OAS) {
